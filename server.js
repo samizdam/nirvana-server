@@ -3,6 +3,14 @@ const morgan = require('morgan')
 const cors = require('cors')
 const session = require('express-session')
 const store = require('session-file-store')
+const http = require('http')
+const { Server } = require('socket.io')
+
+const { ApolloServer } = require('@apollo/server')
+const { expressMiddleware } = require('@apollo/server/express4')
+const {
+	ApolloServerPluginDrainHttpServer
+} = require('@apollo/server/plugin/drainHttpServer')
 
 const authController = require('./web/controllers/authController')
 const promoController = require('./web/controllers/promoController')
@@ -15,38 +23,82 @@ const helmet = require('helmet')
 const { errorHandler } = require('./web/middleware/errorHandler')
 require('dotenv').config()
 const { config } = require('dotenv')
+const { onConnection } = require('./web/services/socketService')
+const { resolvers } = require('./web/utils/resolver')
+const { typeDefs } = require('./web/schema/typeDefs')
 
-const app = express()
-const PORT = process.env.PORT || 3001
+async function startServer() {
+	const app = express()
+	const PORT = process.env.PORT || 3001
 
-const FileStore = store(session)
+	const FileStore = store(session)
 
-const sessionConfig = {
-	name: 'user_id',
-	secret: process.env.SESSION_SECRET ?? 'test',
-	resave: true,
-	store: new FileStore(),
-	saveUninitialized: false,
-	cookie: {
-		maxAge: 1000 * 60 * 60,
-		httpOnly: true
+	const sessionConfig = {
+		name: 'user_id',
+		secret: process.env.SESSION_SECRET ?? 'test',
+		resave: true,
+		store: new FileStore(),
+		saveUninitialized: false,
+		cookie: {
+			maxAge: 1000 * 60 * 60,
+			httpOnly: true
+		}
 	}
+
+	app.use(cors({ credentials: true, origin: true }))
+
+	app.use(helmet({ contentSecurityPolicy: false }))
+	app.use(session(sessionConfig))
+	app.use(morgan('dev'))
+	app.use(express.json())
+
+	const httpServer = http.createServer(app)
+
+	const io = new Server(httpServer, {
+		cors: {
+			origin: process.env.FRONT_BASE_URL,
+			methods: ['GET', 'POST']
+		}
+	})
+
+	const server = new ApolloServer({
+		typeDefs,
+		resolvers,
+		introspection: process.env.NODE_ENV !== 'production',
+		plugins: [ApolloServerPluginDrainHttpServer({ httpServer })]
+	})
+
+	await server.start()
+
+	io.on('connection', socket => {
+		console.log(`connected ${socket.id}`)
+		onConnection(socket)
+	})
+
+	app.use('/api/checkHealth', checkHealthController)
+	app.use('/api/radio', radioController)
+	app.use('/api/auth', authController)
+	app.use('/api/promo', promoController)
+	app.use('/api/track', tracksController)
+	app.use('/api/favorite', favoriteController)
+
+	app.use(
+		'/graphql',
+		cors(),
+		express.json(),
+		expressMiddleware(server, {
+			context: async ({ req, res }) => ({
+				request: req,
+				response: res
+			})
+		})
+	)
+
+	app.use(errorHandler)
+
+	httpServer.listen(PORT, () =>
+		console.log(`Server has started on PORT ${PORT}`)
+	)
 }
 
-app.use(cors({ credentials: true, origin: true }))
-
-app.use(helmet())
-app.use(session(sessionConfig))
-app.use(morgan('dev'))
-app.use(express.json())
-
-app.use('/api/checkHealth', checkHealthController)
-app.use('/api/radio', radioController)
-app.use('/api/auth', authController)
-app.use('/api/promo', promoController)
-app.use('/api/track', tracksController)
-app.use('/api/favorite', favoriteController)
-
-app.use(errorHandler)
-
-app.listen(PORT, () => console.log(`Server has started on PORT ${PORT}`))
+startServer()
