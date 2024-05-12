@@ -6,7 +6,8 @@ module.exports = (sequelize, DataTypes) => {
 	Chat.init(
 		{
 			name: DataTypes.TEXT,
-			lastMessage: DataTypes.TEXT
+			lastMessage: DataTypes.TEXT,
+			isNewMessage: DataTypes.BOOLEAN
 		},
 		{
 			sequelize,

@@ -1,7 +1,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	async up(queryInterface, Sequelize) {
-		await queryInterface.createTable('Chats', {
+		await queryInterface.createTable('Messages', {
 			id: {
 				allowNull: false,
 				primaryKey: true,
@@ -9,15 +9,24 @@ module.exports = {
 				defaultValue: Sequelize.UUIDV4,
 				isUUID: 4
 			},
-			name: {
+			userId: {
+				type: Sequelize.UUID,
+				references: {
+					model: 'Users',
+					key: 'id'
+				},
+				isUUID: 4
+			},
+			message: {
 				type: Sequelize.TEXT
 			},
-			lastMessage: {
-				type: Sequelize.TEXT
-			},
-			isNewMessage: {
-				type: Sequelize.BOOLEAN,
-				defaultValue: false
+			chatId: {
+				type: Sequelize.UUID,
+				references: {
+					model: 'Chats',
+					key: 'id'
+				},
+				isUUID: 4
 			},
 			createdAt: {
 				allowNull: false,
@@ -32,6 +41,6 @@ module.exports = {
 		})
 	},
 	async down(queryInterface, Sequelize) {
-		await queryInterface.dropTable('Chats')
+		await queryInterface.dropTable('Messages')
 	}
 }

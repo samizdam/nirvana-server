@@ -1,9 +1,12 @@
+const messageService = require('../services/messageService')
+
 function onConnection(socket) {
 	let numUsers = 0
 
 	let addedUser = false
 
-	socket.on('send message', data => {
+	socket.on('send message', async data => {
+		await messageService.addMessage(data)
 		socket.broadcast.emit('get message', {
 			nickname: data.nickname,
 			userId: data.userId,

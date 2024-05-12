@@ -1,3 +1,5 @@
+const chatService = require('../services/chatService')
+
 async function getChats(request, response) {
 	let result = {
 		success: false,
@@ -5,10 +7,7 @@ async function getChats(request, response) {
 		errors: null
 	}
 	try {
-		let chats = [
-			{ id: 1, name: 'sfss', lastMessage: 'fasf' },
-			{ id: 2, name: 'sfssafdsfd', lastMessage: 'faasfdssf' }
-		]
+		let chats = chatService.getChats()
 		if (chats == null) {
 			result.errors = {
 				code: '200',

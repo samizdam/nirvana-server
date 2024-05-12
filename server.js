@@ -23,7 +23,7 @@ const helmet = require('helmet')
 const { errorHandler } = require('./web/middleware/errorHandler')
 require('dotenv').config()
 const { config } = require('dotenv')
-const { onConnection } = require('./web/services/socketService')
+const { onConnection } = require('./web/controllers/messageController')
 const { resolvers } = require('./web/utils/resolver')
 const { typeDefs } = require('./web/schema/typeDefs')
 
@@ -56,8 +56,7 @@ async function startServer() {
 
 	const io = new Server(httpServer, {
 		cors: {
-			origin: process.env.FRONT_BASE_URL,
-			methods: ['GET', 'POST']
+			credentials: true
 		}
 	})
 
@@ -71,7 +70,6 @@ async function startServer() {
 	await server.start()
 
 	io.on('connection', socket => {
-		console.log(`connected ${socket.id}`)
 		onConnection(socket)
 	})
 

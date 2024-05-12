@@ -4,6 +4,15 @@ type ChatResponse {
   id: String
   name: String
   lastMessage: String
+  isNewMessage: Boolean
+  messages: [Message]
+}
+
+type Message {
+  id: String
+  message: String
+  userId: String
+  chatId: String
 }
 
 type QueryChatsResponse{
